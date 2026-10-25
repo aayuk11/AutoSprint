@@ -1,0 +1,35 @@
+# Secrets - never commit these
+.env
+.env.*
+!.env.example
+*.env
+*.env.local
+*.env.txt
+
+# Local storage fallback (used when ZOHO_* is not configured)
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and generated output
+*.log
+*.xlsx
+*.pdf
+*.png
+!assets/**
+!static/**

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Sprint Report Generator{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="banner">
+  <div class="banner-inner">
+    <div>
+      <h1>Sprint Report Generator</h1>
+      <p>Fill in sprint details · Fetch from Jira or upload a CSV · Download Excel, PDF and Image</p>
+    </div>
+    <nav class="topnav">
+      <a href="{{ url_for('index') }}" class="{{ 'on' if request.endpoint == 'index' }}">Generate</a>
+      <a href="{{ url_for('settings') }}" class="{{ 'on' if request.endpoint == 'settings' }}">Settings</a>
+      {% if auth_enabled and current_user %}
+        <a href="{{ url_for('access') }}" class="{{ 'on' if request.endpoint == 'access' }}">Access</a>
+        <a href="{{ url_for('logout') }}" title="Signed in as {{ current_user }}">Log out</a>
+      {% endif %}
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="statusbar">
+    <span title="Where projects, mappings and queries are stored">
+      Storage:
+      {% if backend_kind == 'ZohoSheetBackend' %}
+        <b class="ok-text">Zoho Sheet</b> <span class="muted">(saved across restarts)</span>
+      {% else %}
+        <b class="warn-text">local files</b> <span class="muted">(not persistent — set the ZOHO_* variables)</span>
+      {% endif %}
+    </span>
+    <span class="muted">
+      {% if auth_enabled and current_user %}Signed in as <b>{{ current_user }}</b> · {% endif %}
+      Jira {{ '✓' if jira_ready else '✗' }} · Cliq {{ '✓' if cliq_ready else '✗' }}
+    </span>
+  </div>
+
+  {% if store_error %}
+    <div class="flash error">
+      <b>Storage problem &mdash; your saved settings are not being read.</b><br>
+      {{ store_error }}<br>
+      <span class="muted">Nothing has been lost; the app cannot reach the sheet. Check the
+      <code>ZOHO_*</code> settings (resource id, worksheet name, and that the account can open
+      that sheet).</span>
+    </div>
+  {% endif %}
+
+  {% block steps %}{% endblock %}
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

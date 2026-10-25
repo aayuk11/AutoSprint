@@ -1,0 +1,42 @@
+# Docker does NOT honour .gitignore, so anything to keep out of the image has to
+# be listed here as well. Without this the build copies .env - real credentials -
+# straight into the image layers.
+
+# Secrets and runtime data
+.env
+*.local.json
+data/
+
+# Version control and local environments
+.git
+.gitignore
+.gitattributes
+.venv/
+venv/
+env/
+
+# Python artefacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+
+# Docs and compose aren't needed inside the image
+README.md
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Generated output
+*.xlsx
+*.csv
+*.pdf
+*.log

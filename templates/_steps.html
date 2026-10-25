@@ -1,0 +1,17 @@
+{% macro steps(current, has_data=false) %}
+<div class="steps">
+  <a href="{{ url_for('index') }}" class="{{ 'on' if current == 1 else 'done' }}">1 · Sprint Details</a>
+  {% if current == 2 %}
+    <span class="on">2 · Get Jira Data</span>
+  {% else %}
+    <a href="{{ url_for('data') }}" class="{{ 'done' if current > 2 else 'todo' }}">2 · Get Jira Data</a>
+  {% endif %}
+  {% if current == 3 %}
+    <span class="on">3 · Report</span>
+  {% elif has_data %}
+    <a href="{{ url_for('report') }}" class="todo">3 · Report</a>
+  {% else %}
+    <span class="todo">3 · Report</span>
+  {% endif %}
+</div>
+{% endmacro %}

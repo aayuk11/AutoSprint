@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in · Sprint Report Generator</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="banner">
+  <div class="banner-inner">
+    <div>
+      <h1>Sprint Report Generator</h1>
+      <p>Sign in to continue</p>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" style="max-width:460px">
+  <form method="post" class="card" style="margin-top:24px">
+    <div class="section-title">Sign in</div>
+
+    {% if error %}
+      <div class="flash error">{{ error }}</div>
+    {% endif %}
+
+    <div class="field">
+      <label for="email">Work email</label>
+      <input type="email" name="email" id="email" value="{{ email }}"
+             placeholder="you@{{ domain }}" autocomplete="username" autofocus required>
+    </div>
+
+    <div class="field">
+      <label for="password">Team password</label>
+      <input type="password" name="password" id="password"
+             autocomplete="current-password" required>
+    </div>
+
+    <input type="hidden" name="next" value="{{ next }}">
+    <div class="btn-row">
+      <button type="submit" class="primary" style="width:100%">Sign in</button>
+    </div>
+
+    <p class="hint" style="margin-top:14px">
+      Use your <b>@{{ domain }}</b> email address with the password shared by your team.
+    </p>
+  </form>
+</main>
+</body>
+</html>

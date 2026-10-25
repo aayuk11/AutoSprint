@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% from "_steps.html" import steps %}
+{% block steps %}{{ steps(1) }}{% endblock %}
+
+{% block content %}
+<form method="post" class="card">
+  <div class="section-title">Sprint Information</div>
+
+  <div class="grid g3">
+    <div class="field">
+      <label for="project">Project</label>
+      <div class="inline">
+        <select name="project" id="project" onchange="this.form.action.value='switch'; this.form.submit();">
+          {% for p in projects %}
+            <option value="{{ p }}" {{ 'selected' if p == project }}>{{ p }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <input type="text" name="new_project" id="new_project" style="margin-top:8px"
+             placeholder="…or type a new project name to add it">
+      <p class="hint">Switching reloads that project's saved details. A new name is added when you save.</p>
+    </div>
+    <div class="field">
+      <label>Sprint Type</label>
+      <div class="radio-row">
+        <label><input type="radio" name="sprint_type" value="Product Sprint"
+                      {{ 'checked' if fd.sprint_type != 'Design Sprint' }}
+                      onchange="toggleType()"> Product Sprint</label>
+        <label><input type="radio" name="sprint_type" value="Design Sprint"
+                      {{ 'checked' if fd.sprint_type == 'Design Sprint' }}
+                      onchange="toggleType()"> Design Sprint</label>
+      </div>
+    </div>
+    <div class="field">
+      <label for="sprint_number">Sprint Number</label>
+      <input type="number" min="1" max="999" name="sprint_number" id="sprint_number"
+             value="{{ fd.sprint_number }}">
+    </div>
+  </div>
+
+  <hr class="div">
+
+  <div class="grid g4">
+    <div class="field">
+      <label for="sprint_start">Sprint Start Date</label>
+      <input type="date" name="sprint_start" id="sprint_start" value="{{ fd.sprint_start }}">
+    </div>
+    <div class="field">
+      <label for="sprint_end">Sprint End Date</label>
+      <input type="date" name="sprint_end" id="sprint_end" value="{{ fd.sprint_end }}">
+    </div>
+
+    <div class="field design-only">
+      <label for="sprint_release">Sprint Release Date</label>
+      <input type="date" name="sprint_release" id="sprint_release" value="{{ fd.sprint_release }}">
+    </div>
+
+    <div class="field product-only">
+      <label for="dev_release">Sprint Development Release</label>
+      <input type="date" name="dev_release" id="dev_release" value="{{ fd.dev_release }}">
+    </div>
+    <div class="field product-only">
+      <label for="qa_release">Sprint QA Release</label>
+      <input type="date" name="qa_release" id="qa_release" value="{{ fd.qa_release }}">
+    </div>
+    <div class="field product-only">
+      <label for="prod_release">Production Release Date</label>
+      <input type="date" name="prod_release" id="prod_release" value="{{ fd.prod_release }}">
+    </div>
+
+    <div class="field">
+      <label for="scrum_master">Scrum Master</label>
+      <input type="text" name="scrum_master" id="scrum_master" value="{{ fd.scrum_master }}"
+             placeholder="e.g. Rishav Kumar">
+    </div>
+  </div>
+
+  <hr class="div">
+  <div class="section-title">Sprint Goal &amp; Major Items</div>
+  <div class="field">
+    <label for="sprint_goal">Sprint Goal</label>
+    <input type="text" name="sprint_goal" id="sprint_goal" value="{{ fd.sprint_goal }}"
+           placeholder="e.g. Rule Engine Module Enhancements (Phase 1)">
+  </div>
+  <div class="grid g3">
+    <div class="field">
+      <label for="major_item_1">Major Sprint Item 1</label>
+      <input type="text" name="major_item_1" id="major_item_1" value="{{ fd.major_item_1 }}">
+    </div>
+    <div class="field">
+      <label for="major_item_2">Major Sprint Item 2</label>
+      <input type="text" name="major_item_2" id="major_item_2" value="{{ fd.major_item_2 }}">
+    </div>
+    <div class="field">
+      <label for="major_item_3">Major Sprint Item 3</label>
+      <input type="text" name="major_item_3" id="major_item_3" value="{{ fd.major_item_3 }}">
+    </div>
+  </div>
+
+  <input type="hidden" name="action" value="save">
+  <div class="btn-row">
+    <button type="submit" class="primary">Save &amp; continue →</button>
+    <span class="hint">Details are saved per project and reloaded next time.</span>
+  </div>
+</form>
+
+<script>
+function toggleType() {
+  var design = document.querySelector('input[name=sprint_type]:checked').value === 'Design Sprint';
+  document.querySelectorAll('.design-only').forEach(function (el) { el.style.display = design ? '' : 'none'; });
+  document.querySelectorAll('.product-only').forEach(function (el) { el.style.display = design ? 'none' : ''; });
+}
+toggleType();
+</script>
+{% endblock %}

@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% block title %}Settings · Sprint Report Generator{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="section-title">Project Configuration</div>
+  <p class="hint" style="margin-bottom:14px">
+    Define the status buckets and % KPI cards for a project, map Jira statuses to them, pick colours,
+    and order the sprint-sheet columns — all reused automatically every time you generate a report.
+  </p>
+  <form method="get">
+    <div class="field" style="max-width:420px">
+      <label for="project">Project</label>
+      <select name="project" id="project" onchange="this.form.submit()">
+        {% for p in projects %}
+          <option value="{{ p }}" {{ 'selected' if p == project }}>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+  <form method="get" class="inline" style="max-width:560px">
+    <input type="text" name="project" placeholder="…or type a new project name to configure it">
+    <button type="submit">Open</button>
+  </form>
+</div>
+
+<form method="post">
+  <input type="hidden" name="project" value="{{ project }}">
+
+  <!-- ---------------- buckets ---------------- -->
+  <div class="card">
+    <div class="section-title">Status Buckets</div>
+    <p class="hint" style="margin-bottom:12px">The stage categories counted in your report (e.g. In Review, Done).</p>
+    {% for b in cfg.buckets %}
+      <div class="row-edit">
+        <input type="text" name="bucket_label_{{ b.key }}" value="{{ b.label }}" placeholder="Bucket name">
+        <input type="color" name="bucket_color_{{ b.key }}" value="{{ b.color }}">
+        <span class="muted" style="font-size:11px">clear the name to remove</span>
+        <input type="hidden" name="bucket_key" value="{{ b.key }}">
+      </div>
+    {% endfor %}
+    <div class="row-edit" style="margin-top:10px">
+      <input type="text" name="new_bucket_label" placeholder="+ Add a bucket…">
+      <input type="color" name="new_bucket_color" value="#2E75B6">
+      <span></span>
+    </div>
+  </div>
+
+  <!-- ---------------- KPI cards ---------------- -->
+  <div class="card">
+    <div class="section-title">% KPI Cards</div>
+    <p class="hint" style="margin-bottom:12px">The percentage metrics at the top of the report. Pick which buckets sum into each.</p>
+    {% for k in cfg.kpis %}
+      <div class="row-kpi">
+        <input type="text" name="kpi_label_{{ k.key }}" value="{{ k.label }}" placeholder="KPI name">
+        <input type="color" name="kpi_color_{{ k.key }}" value="{{ k.color }}">
+        <select name="kpi_buckets_{{ k.key }}" multiple class="multi">
+          {% for b in cfg.buckets %}
+            <option value="{{ b.key }}" {{ 'selected' if b.key in k.bucket_keys }}>{{ b.label }}</option>
+          {% endfor %}
+        </select>
+        <input type="hidden" name="kpi_key" value="{{ k.key }}">
+      </div>
+    {% endfor %}
+    <div class="row-kpi" style="margin-top:10px">
+      <input type="text" name="new_kpi_label" placeholder="+ Add a KPI card…">
+      <input type="color" name="new_kpi_color" value="#00B050">
+      <span class="hint">Save, then choose its buckets.</span>
+    </div>
+    <p class="hint">Ctrl/Cmd-click to select more than one bucket.</p>
+  </div>
+
+  <!-- ---------------- status mapping ---------------- -->
+  <div class="card">
+    <div class="section-title">Map Jira statuses to buckets</div>
+    <p class="hint" style="margin-bottom:12px">
+      Statuses are picked up automatically from the CSV/Jira fetch. Add any others below — every status
+      listed here is remembered, so you only build the mapping once.
+    </p>
+    {% if statuses %}
+      <div class="grid g2">
+        {% for lower_key, display in statuses %}
+          <div class="field">
+            <label>{{ display }}</label>
+            <select name="status_map_{{ lower_key }}">
+              <option value="">(ignore)</option>
+              {% for b in cfg.buckets %}
+                <option value="{{ b.key }}" {{ 'selected' if cfg.status_map.get(lower_key) == b.key }}>{{ b.label }}</option>
+              {% endfor %}
+            </select>
+            <input type="hidden" name="status_key" value="{{ lower_key }}">
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="hint">No statuses yet — fetch data once, or add them below.</p>
+    {% endif %}
+
+    <div class="grid g2" style="margin-top:10px">
+      <div class="field">
+        <label for="known_statuses">Known statuses (one per line)</label>
+        <textarea name="known_statuses" id="known_statuses">{{ cfg.known_statuses|join('\n') }}</textarea>
+      </div>
+      <div class="field">
+        <label for="new_statuses">Add statuses (one per line)</label>
+        <textarea name="new_statuses" id="new_statuses" placeholder="In Design Review&#10;Ready for Dev"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------- task columns ---------------- -->
+  <div class="card">
+    <div class="section-title">Task Table Columns</div>
+    <p class="hint" style="margin-bottom:12px">
+      Order and show/hide the columns of the sprint sheet (Excel and PDF). Drag the ▲▼ order with the
+      arrows; untick to hide.
+    </p>
+    <div id="collist">
+      {% for entry in task_columns %}
+        {% set cdef = all_columns[entry.key] %}
+        <div class="row-col">
+          <span class="muted mono">≡</span>
+          <span>
+            {{ label_header if entry.key == labels_key else cdef.label }}
+            <input type="hidden" name="column_key" value="{{ entry.key }}">
+          </span>
+          <span class="inline">
+            <label class="check" style="font-size:12px">
+              <input type="checkbox" name="column_visible" value="{{ entry.key }}"
+                     {{ 'checked' if entry.visible }}> show
+            </label>
+            <button type="button" class="tiny" onclick="moveRow(this,-1)">▲</button>
+            <button type="button" class="tiny" onclick="moveRow(this,1)">▼</button>
+          </span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button type="submit" name="action" value="save" class="primary">Save configuration</button>
+    <button type="submit" name="action" value="reset"
+            onclick="return confirm('Reset {{ project }} to the built-in defaults?')">Reset to defaults</button>
+  </div>
+</form>
+
+<div class="card">
+  <div class="section-title">Schedule &mdash; run this project automatically</div>
+  <p class="hint" style="margin-bottom:12px">
+    When enabled, the report is fetched from Jira, built and posted to this project's Cliq
+    channel at {{ run_time_label }} on the days you pick &mdash; no one needs to be logged in.
+  </p>
+
+  {% if automation == 'off' %}
+    <div class="flash warn">Automation is switched off on this server
+      (<code>SCHEDULER_ENABLED=false</code>). Settings save, but nothing will run.</div>
+  {% endif %}
+
+  {% if blockers %}
+    <div class="flash warn">
+      Before this project can run on its own it still needs: <b>{{ blockers|join(', ') }}</b>.
+      Set those up on the report pages first.
+    </div>
+  {% endif %}
+
+  {% if stale_sprint %}
+    <div class="flash warn">
+      The saved Jira query targets a <b>specific sprint</b> rather than the open one, so every
+      scheduled run will keep reporting that same sprint. Use
+      <code>sprint in openSprints()</code> if you want it to follow the current sprint. The sprint
+      number and dates in Sprint Details don't advance on their own either.
+    </div>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('schedule') }}">
+    <input type="hidden" name="project" value="{{ project }}">
+
+    <div class="grid g3">
+      <div class="field">
+        <label>Automation</label>
+        <label class="check">
+          <input type="checkbox" name="enabled" {{ 'checked' if schedule.enabled }}
+                 {{ 'disabled' if blockers }}>
+          Run this project automatically
+        </label>
+      </div>
+      <div class="field">
+        <label>Time</label>
+        <div class="static-value">{{ run_time_label }}</div>
+        <div class="hint">Fixed for every project &mdash; reports are run by a
+          scheduled job, not by this page.</div>
+      </div>
+      <div class="field">
+        <label>Files to post</label>
+        <div class="inline">
+          {% for fmt in ['Excel', 'PDF', 'Image'] %}
+            <label class="check"><input type="checkbox" name="formats" value="{{ fmt }}"
+                   {{ 'checked' if fmt in schedule.formats }}> {{ fmt }}</label>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Days</label>
+      <div class="inline">
+        {% for day in weekdays %}
+          <label class="check"><input type="checkbox" name="days" value="{{ day }}"
+                 {{ 'checked' if day in schedule.days }}> {{ day }}</label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <label class="check">
+      <input type="checkbox" name="post_summary" {{ 'checked' if schedule.post_summary }}>
+      Also post the KPI summary message
+    </label>
+
+    {% if last_run %}
+      <p class="hint" style="margin-top:12px">
+        Last run: <b>{{ last_run.at or last_run.date }}</b> &mdash;
+        {% if last_run.status == 'ok' %}
+          posted {{ last_run.issues }} issues ({{ (last_run.formats or [])|join(', ') }})
+        {% elif last_run_interrupted %}
+          <span class="warn-text">interrupted &mdash; it started but never finished,
+          so it was stopped before it could report. Nothing was saved; use
+          &ldquo;Run now&rdquo; to try again.</span>
+        {% else %}
+          <span class="warn-text">{{ last_run.status }}{% if last_run.error %}: {{ last_run.error }}{% endif %}</span>
+        {% endif %}
+      </p>
+    {% endif %}
+
+    <div class="btn-row">
+      <button type="submit" name="action" value="save_schedule" class="primary">Save schedule</button>
+      <button type="submit" name="action" value="run_now"
+              onclick="return confirm('Generate and post {{ project }} to Cliq now?')"
+              {{ 'disabled' if blockers }}>Run now</button>
+      <span class="hint">&ldquo;Run now&rdquo; posts immediately &mdash; useful for testing.</span>
+    </div>
+  </form>
+</div>
+
+<script>
+function moveRow(btn, delta) {
+  var row = btn.closest('.row-col');
+  var list = document.getElementById('collist');
+  if (delta < 0 && row.previousElementSibling) {
+    list.insertBefore(row, row.previousElementSibling);
+  } else if (delta > 0 && row.nextElementSibling) {
+    list.insertBefore(row.nextElementSibling, row);
+  }
+}
+</script>
+{% endblock %}

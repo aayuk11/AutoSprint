@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% from "_steps.html" import steps %}
+{% block steps %}{{ steps(2, health is not none) }}{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="section-title">Sprint Details Confirmed</div>
+  <div class="metrics">
+    <div class="metric"><div class="k">Project</div><div class="v" style="font-size:15px">{{ fd.project_name }}</div></div>
+    <div class="metric"><div class="k">Sprint</div><div class="v">#{{ fd.sprint_number }}</div></div>
+    <div class="metric"><div class="k">Start</div><div class="v" style="font-size:15px">{{ fd.sprint_start.strftime('%d %b %Y') }}</div></div>
+    <div class="metric"><div class="k">Total Days</div><div class="v">{{ fd.total_days }}</div></div>
+    <div class="metric"><div class="k">Scrum Master</div><div class="v" style="font-size:15px">{{ fd.scrum_master }}</div></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="section-title">Get Jira Data</div>
+
+  {% if jira_ready %}
+  <form method="post">
+    <div class="field">
+      <label>Query type</label>
+      <div class="radio-row">
+        <label><input type="radio" name="mode" value="jql"
+                      {{ 'checked' if saved_query.get('mode', 'jql') == 'jql' }}> JQL</label>
+        <label><input type="radio" name="mode" value="filter"
+                      {{ 'checked' if saved_query.get('mode') == 'filter' }}> Saved filter ID</label>
+      </div>
+    </div>
+    <div class="field">
+      <label for="query">JQL or saved-filter ID</label>
+      <input type="text" name="query" id="query" value="{{ saved_query.get('value', '') }}"
+             placeholder='e.g. project = PD AND sprint = 4356 ORDER BY key ASC'>
+      <p class="hint">Saved automatically per project — usually you just update the sprint each time.</p>
+    </div>
+    <div class="btn-row">
+      <button type="submit" name="action" value="fetch" class="primary">Fetch from Jira</button>
+      <button type="submit" name="action" value="save_query">Save query</button>
+    </div>
+  </form>
+  {% else %}
+    <p class="hint">Set <code>JIRA_BASE_URL</code>, <code>JIRA_EMAIL</code> and <code>JIRA_API_TOKEN</code>
+       to enable one-click fetching. You can still upload a CSV below.</p>
+  {% endif %}
+
+  <hr class="div">
+  <form method="post" enctype="multipart/form-data">
+    <label for="csv">Or upload a Jira CSV export (all fields)</label>
+    <div class="inline">
+      <input type="file" name="csv" id="csv" accept=".csv">
+      <button type="submit" name="action" value="upload">Upload CSV</button>
+    </div>
+    <p class="hint">Required columns: <b>Issue key, Issue Type, Summary, Status</b>.</p>
+  </form>
+</div>
+
+{% if health %}
+<div class="card">
+  <div class="section-title">Loaded: {{ source }}</div>
+  <div class="metrics">
+    <div class="metric"><div class="k">Total Rows</div><div class="v">{{ health.rows }}</div></div>
+    <div class="metric"><div class="k">Epics</div><div class="v">{{ health.epics }}</div></div>
+    <div class="metric"><div class="k">Stories/Tasks</div><div class="v">{{ health.stories }}</div></div>
+    <div class="metric"><div class="k">Sub-tasks</div><div class="v">{{ health.subtasks }}</div></div>
+  </div>
+
+  {% if date_fields and date_fields[0] %}
+    <p class="hint">📅 Dates read from — Start: <b>{{ date_fields[0] }}</b> · End: <b>{{ date_fields[1] }}</b></p>
+  {% endif %}
+  {% if health.with_dates == 0 %}
+    <div class="flash warn">No issue has both a start and an end date — those columns will show “-”.
+      If your team does set dates, the field names may differ: set <code>JIRA_TARGET_START_FIELD</code> /
+      <code>JIRA_TARGET_END_FIELD</code>.</div>
+  {% else %}
+    <p class="hint">📅 {{ health.with_dates }} of {{ health.rows }} issues have both dates; the rest show “-”.</p>
+  {% endif %}
+
+  {% if health.unmapped_statuses %}
+    <div class="flash warn">Statuses not yet mapped for <b>{{ project }}</b> (won't be counted in any bucket):
+      <b>{{ health.unmapped_statuses|join(', ') }}</b> — map them on the
+      <a href="{{ url_for('settings', project=project) }}">Settings</a> page.</div>
+  {% endif %}
+  {% if health.dropped_types %}
+    <div class="flash warn">These issue types won't appear in the task table (they still count in KPIs):
+      <b>{{ health.dropped_types|join(', ') }}</b>.</div>
+  {% endif %}
+  {% if health.missing_epics %}
+    <div class="flash warn">{{ health.missing_epics|length }} parent epic(s) aren't in this result set,
+      so they'll show as <b>[EXTERNAL EPIC]</b> with no name.</div>
+  {% endif %}
+
+  <h3>Status Breakdown</h3>
+  <div class="scroll-x">
+    <table>
+      <thead><tr><th>Status</th><th>Count</th></tr></thead>
+      <tbody>
+      {% for status, count in health.status_counts.items() %}
+        <tr><td>{{ status }}</td><td>{{ count }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Data Preview (first 5 rows)</h3>
+  <div class="scroll-x">{{ health.preview.to_html(index=False, border=0)|safe }}</div>
+
+  <div class="btn-row">
+    <a href="{{ url_for('index') }}" class="btn">← Back</a>
+    <a href="{{ url_for('report') }}" class="btn primary">Generate Report →</a>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <p class="hint">Fetch from Jira or upload a CSV to continue.</p>
+  <div class="btn-row"><a href="{{ url_for('index') }}" class="btn">← Back</a></div>
+</div>
+{% endif %}
+{% endblock %}

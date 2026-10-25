@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Access · Sprint Report Generator{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="section-title">Who can sign in</div>
+  <p class="hint" style="margin-bottom:14px">
+    Only these addresses can sign in, using the shared team password. Changes take effect within a
+    minute — no redeploy needed. Remove someone here when they leave the team.
+  </p>
+
+  {% if not stored and not env_users %}
+    <div class="flash error">
+      No one is on the list, so nobody can sign in. Add at least one address below, or set
+      <code>AUTH_ALLOWED_EMAILS</code> in the environment.
+    </div>
+  {% endif %}
+
+  <h3>Allowed addresses</h3>
+  {% if stored %}
+    <div class="scroll-x">
+      <table>
+        <thead><tr><th>Email</th><th style="width:120px"></th></tr></thead>
+        <tbody>
+        {% for email in stored %}
+          <tr>
+            <td>{{ email }}{% if email == current_user %} <span class="muted">(you)</span>{% endif %}</td>
+            <td>
+              <form method="post" style="margin:0">
+                <input type="hidden" name="email" value="{{ email }}">
+                <button type="submit" name="action" value="remove" class="tiny"
+                        {{ 'disabled' if email == current_user }}
+                        onclick="return confirm('Remove {{ email }}?')">Remove</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="hint">No addresses added here yet.</p>
+  {% endif %}
+
+  {% if env_users %}
+    <h3>From the environment</h3>
+    <p class="hint">
+      Set via <code>AUTH_ALLOWED_EMAILS</code>. These always have access and can't be removed here —
+      they're the way back in if this list is emptied or the Zoho Sheet is unreachable. Change them on
+      the server.
+    </p>
+    <div class="chips">
+      {% for email in env_users %}
+        <span class="chip" style="background:#64748B">{{ email }}</span>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <hr class="div">
+  <form method="post">
+    <div class="field">
+      <label for="new_emails">Add people (one per line, or comma separated)</label>
+      <textarea name="new_emails" id="new_emails"
+                placeholder="colleague@{{ domain }}&#10;another@{{ domain }}"></textarea>
+      <p class="hint">Must be @{{ domain }} addresses.</p>
+    </div>
+    <div class="btn-row">
+      <button type="submit" name="action" value="add" class="primary">Add to list</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <div class="section-title">What this protects</div>
+  <p class="hint">
+    The shared password is the actual control — the email address is recorded, not verified, so
+    anyone holding the password could enter any address on this list. The allowlist is here so you
+    can revoke access for one person without changing the password for everyone, and so you know who
+    is using the app. Keep the app on the internal network regardless.
+  </p>
+</div>
+{% endblock %}

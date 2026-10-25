@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% from "_steps.html" import steps %}
+{% block steps %}{{ steps(3, true) }}{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="section-title">Report Ready</div>
+
+  <div class="grid g4">
+    {% for label, value, color in fd.meta_items %}
+      <div class="detail-box"><div class="k">{{ label }}</div><div class="v">{{ value }}</div></div>
+    {% endfor %}
+  </div>
+
+  <div class="grid g2" style="margin-top:14px">
+    <div class="detail-box"><div class="k">Sprint Goal</div>
+      <div class="v">{{ fd.sprint_goal or '-' }}</div></div>
+    <div class="detail-box"><div class="k">Major Sprint Items</div>
+      <div class="v">
+        {% set items = [fd.major_item_1, fd.major_item_2, fd.major_item_3]|select|list %}
+        {{ items|join(' · ') if items else '-' }}
+      </div></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="section-title">Sprint KPI Summary</div>
+  <div class="metrics">
+    <div class="metric"><div class="k">Sprint</div><div class="v">#{{ fd.sprint_number }}</div></div>
+    <div class="metric"><div class="k">Action Items</div><div class="v">{{ kpis.action_items }}</div></div>
+    <div class="metric"><div class="k">Days Left</div><div class="v">{{ fd.days_left }}</div></div>
+    <div class="metric"><div class="k">Daily Task Count</div><div class="v">{{ daily_task }}</div></div>
+  </div>
+  {% if kpis.unmapped_count %}
+    <div class="flash warn" style="margin-top:12px">{{ kpis.unmapped_count }} item(s) have a status not
+      mapped to any bucket — map them on the
+      <a href="{{ url_for('settings', project=fd.project_name) }}">Settings</a> page so they're counted.</div>
+  {% endif %}
+
+  {% if parsed.kpi_defs %}
+    <h3>% KPI Cards</h3>
+    <div class="tiles">
+      {% for k in parsed.kpi_defs %}
+        {% set v = kpis.kpi_values.get(k.key, {'pct_display': '0%'}) %}
+        <div class="tile" style="border-left-color: {{ k.color }}">
+          <div class="k">{{ k.label }}</div>
+          <div class="v" style="color: {{ k.color }}">{{ v.pct_display }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if parsed.buckets %}
+    <h3>Status Breakdown</h3>
+    <div class="tiles">
+      {% for b in parsed.buckets %}
+        <div class="tile" style="border-left-color: {{ b.color }}">
+          <div class="k">{{ b.label }}</div>
+          <div class="v" style="color: {{ b.color }}">{{ kpis.bucket_counts.get(b.key, 0) }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="hint">No status buckets configured for this project yet — add some on the Settings page.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="section-title">Summary Image Preview</div>
+  <img class="preview-img" src="{{ url_for('download', fmt='Image') }}?inline=1" alt="Sprint summary">
+</div>
+
+<div class="card">
+  <div class="section-title">Download</div>
+  <div class="btn-row">
+    {% for fmt, meta in files.items() %}
+      <a class="btn" href="{{ url_for('download', fmt=fmt) }}">⬇ {{ fmt }} <span class="muted">({{ meta[0] }})</span></a>
+    {% endfor %}
+  </div>
+</div>
+
+{% if cliq_ready %}
+<div class="card">
+  <div class="section-title">Post to Zoho Cliq</div>
+  <form method="post" action="{{ url_for('post_cliq') }}">
+    <div class="grid g2">
+      <div class="field">
+        <label for="channel">Cliq channel (unique name)</label>
+        <input type="text" name="channel" id="channel" value="{{ channel }}" placeholder="e.g. tcproduct">
+        <p class="hint">Saved per project. Found in the channel's URL / settings.</p>
+      </div>
+      <div class="field">
+        <label>Files to post</label>
+        <div class="inline">
+          {% for fmt in files %}
+            <label class="check"><input type="checkbox" name="formats" value="{{ fmt }}" checked> {{ fmt }}</label>
+          {% endfor %}
+        </div>
+        <label class="check" style="margin-top:10px">
+          <input type="checkbox" name="include_summary"> Also post a summary message
+        </label>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button type="submit" name="action" value="post" class="primary">Post selected files to Cliq</button>
+      <button type="submit" name="action" value="save_channel">Save channel</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<div class="btn-row">
+  <a href="{{ url_for('data') }}" class="btn">← Back to data</a>
+  <a href="{{ url_for('reset') }}" class="btn">Generate another report</a>
+</div>
+{% endblock %}
